@@ -13,6 +13,19 @@ fn unknown_label() {
 }
 
 #[test]
+fn unordered_type_aliases() {
+    // https://github.com/gleam-lang/gleam/issues/1925
+    assert_no_warnings!(
+        r#"type Foo(a) =
+          Map(a, Bar(a))
+        
+        type Bar(a) {
+          Bar(a)
+        }"#
+    );
+}
+
+#[test]
 fn todo_warning_test() {
     assert_warning!(
         "fn main() { 1 == todo }",

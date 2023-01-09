@@ -357,6 +357,29 @@ impl TypeAst {
             },
         }
     }
+
+    pub fn dependencies(&self) -> Vec<String> {
+        match self {
+            TypeAst::Constructor {
+                name, arguments, ..
+            } => arguments
+                .iter()
+                .flat_map(|arg| arg.dependencies())
+                .chain(std::iter::once(name.clone()))
+                .collect(),
+            TypeAst::Fn {
+                arguments, return_, ..
+            } => arguments
+                .iter()
+                .flat_map(|arg| arg.dependencies())
+                .chain(return_.dependencies())
+                .collect(),
+            TypeAst::Tuple { elems, .. } => {
+                elems.iter().flat_map(|arg| arg.dependencies()).collect()
+            }
+            TypeAst::Hole { .. } | TypeAst::Var { .. } => vec![],
+        }
+    }
 }
 
 pub type TypedStatement = Statement<Arc<Type>, TypedExpr, String, String>;

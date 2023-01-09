@@ -1,6 +1,6 @@
 #![allow(warnings)]
 
-mod dep_tree;
+pub mod dep_tree;
 mod native_file_copier;
 pub mod package_compiler;
 mod package_loader;

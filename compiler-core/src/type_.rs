@@ -595,7 +595,43 @@ pub fn infer_module(
 
     // Register types so they can be used in constructors and functions
     // earlier in the module.
-    for s in module.iter_statements(target) {
+    let (type_aliases, other_statements): (Vec<UntypedStatement>, Vec<UntypedStatement>) = module
+        .clone()
+        .into_iter_statements(target)
+        .partition(|statement| match statement {
+            Statement::TypeAlias { .. } => true,
+            _ => false,
+        });
+
+    let type_alias_dependencies: Vec<(_, _)> = type_aliases
+        .iter()
+        .flat_map(|type_alias| match type_alias {
+            Statement::TypeAlias {
+                alias, type_ast, ..
+            } => Some((alias.clone(), type_ast.dependencies())),
+            _ => None,
+        })
+        .collect();
+
+    let toposorted_type_aliases: Vec<_> =
+        crate::build::dep_tree::toposort_deps(type_alias_dependencies)
+            .unwrap()
+            .iter()
+            .flat_map(|alias_name| {
+                type_aliases
+                    .iter()
+                    .find(|type_alias| match type_alias {
+                        Statement::TypeAlias { alias, .. } => alias == alias_name,
+                        _ => false,
+                    })
+                    .map(|type_alias| type_alias.clone())
+            })
+            .collect();
+
+    for s in toposorted_type_aliases
+        .iter()
+        .chain(other_statements.iter())
+    {
         register_types(s, &name, &mut hydrators, &mut type_names, &mut environment)?;
     }
 
